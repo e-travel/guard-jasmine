@@ -33,6 +33,7 @@ module Guard
         # @option options [Symbol] :specdoc options for the specdoc output, either :always, :never
         # @option options [Symbol] :console options for the console.log output, either :always, :never or :failure
         # @option options [String] :spec_dir the directory with the Jasmine specs
+        # @option options [String] :teamcity whether to output results in teamcity format
         # @return [Boolean, Array<String>] the status of the run and the failed files
         #
         def run(paths, options = { })
@@ -103,7 +104,8 @@ module Guard
             options[:errors],
             options[:junit],
             options[:junit_consolidate],
-            "'#{ options[:junit_save_path] }'"
+            "'#{ options[:junit_save_path] }'",
+            options[:teamcity]
           ]
 
           IO.popen("#{ phantomjs_command(options) } \"#{ suite }\" #{ arguments.collect { |i| i.to_s }.join(' ')}", 'r:UTF-8')
@@ -188,6 +190,9 @@ module Guard
               else
                 notify_runtime_error(result, options)
               end
+            elsif result && options[:teamcity]
+              result['file'] = file
+              notify_spec_result_logs_only(result, options)
             elsif result
               result['file'] = file
               notify_spec_result(result, options)
@@ -265,6 +270,31 @@ module Guard
           end
 
           Formatter.info("Done.\n")
+        end
+
+        def notify_spec_result_logs_only(result, options)
+          specs           = result['stats']['specs']
+          failures        = result['stats']['failures']
+          time            = result['stats']['time']
+          specs_plural    = specs == 1 ? '' : 's'
+          failures_plural = failures == 1 ? '' : 's'
+
+          Formatter.info("\nFinished in #{ time } seconds")
+
+          message      = "#{ specs } spec#{ specs_plural }, #{ failures } failure#{ failures_plural }"
+          full_message = "#{ message }\nin #{ time } seconds"
+          passed       = failures == 0
+
+          if passed
+            report_specdoc_logs_only(result, passed, options)
+            Formatter.success(message)
+            Formatter.notify(full_message, title: 'Jasmine suite passed') if options[:notification] && !options[:hide_success]
+          else
+            report_specdoc_logs_only(result, passed, options)
+            Formatter.error(message)
+            notify_errors(result, options)
+            Formatter.notify(full_message, title: 'Jasmine suite failed', image: :failed, priority: 2) if options[:notification]
+          end
         end
 
         # Notification about the coverage of a spec run, success or failure,
@@ -383,6 +413,12 @@ module Guard
           end
         end
 
+        def report_specdoc_logs_only(result, passed, options)
+          result['suites'].each do |suite|
+            report_specdoc_suite_logs_only(suite, passed, options)
+          end
+        end
+
         # Show the suite result.
         #
         # @param [Hash] suite the suite
@@ -416,6 +452,18 @@ module Guard
           end
 
           suite['suites'].each { |s| report_specdoc_suite(s, passed, options, level + 2) } if suite['suites']
+          end
+
+        def report_specdoc_suite_logs_only(suite, passed, options, level = 0)
+          suite['specs'].each do |spec|
+            spec['logs'].each do |log|
+              log.split("\n").each do |message|
+                Formatter.info message
+              end
+            end if spec['logs'].present?
+          end if suite['specs'].present?
+
+          suite['suites'].each { |s| report_specdoc_suite_logs_only(s, passed, options, level + 2) } if suite['suites'].present?
         end
 
         # Is the specdoc shown for this suite?

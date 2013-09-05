@@ -52,7 +52,8 @@ module Guard
       lines_threshold:          0,
       junit:                    false,
       junit_consolidate:        true,
-      junit_save_path:          ''
+      junit_save_path:          '',
+      teamcity:                 false
     }
 
     # Initialize Guard::Jasmine.

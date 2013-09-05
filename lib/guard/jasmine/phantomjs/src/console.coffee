@@ -51,7 +51,6 @@ class Console
     switch type
       when '%s'
         result = String(object)
-        result = match[1] if match = /'(.*)'/.exec result
 
       when '%d', '%i'
         result = parseInt object
@@ -67,11 +66,9 @@ class Console
 
         else if type is 'Object' and object.toString and object.toString() isnt '[object Object]'
           result = Console.pp object.toString()
-          result = match[1] if match = /'(.*)'/.exec result
 
         else if type is 'String'
           result = String(object)
-          result = match[1] if match = /'(.*)'/.exec result
 
         else
           result = Console.pp object

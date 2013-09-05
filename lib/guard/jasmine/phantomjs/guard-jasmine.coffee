@@ -13,6 +13,7 @@ options =
   junit: /true/i.test phantom.args[6]
   junit_consolidate: /true/i.test phantom.args[7]
   junit_save_path: phantom.args[8] || ''
+  teamcity: /true/i.test phantom.args[9]
 
 # Create the web page.
 #
@@ -58,19 +59,27 @@ page.onInitialized = ->
   page.injectJs 'lib/console.js'
   page.injectJs 'lib/reporter.js'
   page.injectJs 'lib/junit_reporter.js'
+  page.injectJs 'lib/teamcity_reporter.js'
 
   setupReporters = ->
     # Attach the console reporter when the document is ready.
     window.onload = ->
       window.onload = null
       window.resultReceived = false
-      window.reporter = new ConsoleReporter()
+
       if window.jasmine
-        jasmine.getEnv().addReporter(new JUnitXmlReporter("%save_path%", "%consolidate%"))
-        jasmine.getEnv().addReporter(window.reporter)
+        window.reporter = new ConsoleReporter()
+        jasmine.getEnv().addReporter(new jasmine.TeamcityReporter()) if "%teamcity%"
+        jasmine.getEnv().addReporter(new JUnitXmlReporter("%save_path%", "%consolidate%")) if "%junit%"
 
-  page.evaluate(setupReporters, {save_path: options.junit_save_path, consolidate: options.junit_consolidate})
+      jasmine.getEnv().addReporter(window.reporter)
 
+  page.evaluate(setupReporters, {
+    save_path: options.junit_save_path,
+    consolidate: options.junit_consolidate,
+    junit: options.junit,
+    teamcity: options.teamcity
+  })
 
 getXmlResults = (page, key) ->
   getWindowObj = ->
@@ -96,10 +105,10 @@ overloadPageEvaluate = (page) ->
 
 setupWriteFileFunction= (page,key, path_separator) ->
   saveData = () ->
-     window["%resultsObj%"] = {}
-     window.fs_path_separator = "%fs_path_separator%"
-     window.__phantom_writeFile = (filename, text) ->
-         window["%resultsObj%"][filename] = text;
+    window["%resultsObj%"] = {}
+    window.fs_path_separator = "%fs_path_separator%"
+    window.__phantom_writeFile = (filename, text) ->
+      window["%resultsObj%"][filename] = text;
 
   page.evaluate saveData, {resultsObj: key, fs_path_separator: path_separator}
 
@@ -133,7 +142,7 @@ jasmineMissing = ->
     error = """
             The Jasmine reporter is not available!
 
-            #{ text }
+    #{ text }
             """
     console.log JSON.stringify({ error: error })
   else
@@ -152,7 +161,7 @@ specsTimedout = ->
     error = """
             Timeout waiting for the Jasmine test results!
 
-            #{ text }
+    #{ text }
             """
     console.log JSON.stringify({ error: error })
   else
