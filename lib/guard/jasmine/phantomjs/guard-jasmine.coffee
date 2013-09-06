@@ -69,16 +69,16 @@ page.onInitialized = ->
 
       if window.jasmine
         window.reporter = new ConsoleReporter()
-        jasmine.getEnv().addReporter(new jasmine.TeamcityReporter()) if "%teamcity%"
-        jasmine.getEnv().addReporter(new JUnitXmlReporter("%save_path%", "%consolidate%")) if "%junit%"
+        jasmine.getEnv().addReporter(new jasmine.TeamcityReporter()) if "%teamcity%" == "true"
+        jasmine.getEnv().addReporter(new JUnitXmlReporter("%save_path%", "%consolidate%")) if "%junit%" == "true"
 
       jasmine.getEnv().addReporter(window.reporter)
 
   page.evaluate(setupReporters, {
     save_path: options.junit_save_path,
     consolidate: options.junit_consolidate,
-    junit: options.junit,
-    teamcity: options.teamcity
+    junit: options.junit.toString,
+    teamcity: options.teamcity.toString
   })
 
 getXmlResults = (page, key) ->

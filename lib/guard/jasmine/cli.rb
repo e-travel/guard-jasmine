@@ -195,11 +195,11 @@ module Guard
         runner_options[:notification]             = false
         runner_options[:hide_success]             = true
         runner_options[:max_error_notify]         = 0
-        runner_options[:junit]                    = options.junit
-        runner_options[:junit_consolidate]        = options.junit_consolidate
+        runner_options[:junit]                    = options.junit || false
+        runner_options[:junit_consolidate]        = options.junit_consolidate || false
         runner_options[:junit_save_path]          = options.junit_save_path
         runner_options[:is_cli]                   = true
-        runner_options[:teamcity]                 = options.teamcity
+        runner_options[:teamcity]                 = options.teamcity || false
 
         ::Guard::UI.options = ::Guard::UI.options.merge({ :template => ':message' })
 
