@@ -201,6 +201,8 @@ module Guard
         runner_options[:is_cli]                   = true
         runner_options[:teamcity]                 = options.teamcity || false
 
+        runner_options[:console] = :always if runner_options[:teamcity]
+
         ::Guard::UI.options = ::Guard::UI.options.merge({ :template => ':message' })
 
         paths = [runner_options[:spec_dir]] if paths.empty?
